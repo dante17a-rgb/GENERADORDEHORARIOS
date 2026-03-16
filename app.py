@@ -10,232 +10,218 @@ letras = ["A","B","C","D","E","F"]
 st.title("Generador de Horarios Universitarios")
 
 # -----------------------------
-# CONFIGURACION
+# ESTADOS
 # -----------------------------
 
-n = st.number_input("Numero de cursos",1,10,1)
+if "inicio" not in st.session_state:
+    st.session_state.inicio = False
 
-st.subheader("Configuracion de cruces")
-
-MAX_TT = st.number_input("Horas cruce teoria-teoria (max 4)",0,4,0)
-MAX_TP = st.number_input("Horas cruce teoria-practica (max 2)",0,2,0)
+if "n_cursos" not in st.session_state:
+    st.session_state.n_cursos = None
 
 # -----------------------------
-# INGRESO DE CURSOS
+# PANTALLA INICIAL
 # -----------------------------
 
-cursos = []
+if not st.session_state.inicio:
 
-for i in range(n):
+    if st.button("Inicio"):
+        st.session_state.inicio = True
+        st.rerun()
 
-    st.subheader(f"Curso {i+1}")
+# -----------------------------
+# PEDIR NUMERO DE CURSOS
+# -----------------------------
 
-    nombre = st.text_input(f"Nombre del curso {i+1}", key=f"nombre{i}")
+elif st.session_state.n_cursos is None:
 
-    dias_teoria = st.number_input(
-        f"Dias de teoria de {nombre or 'curso'}",
-        1,5,1,
-        key=f"dt{i}"
-    )
+    n = st.number_input("Numero de cursos",1,10,1)
 
-    secciones = st.number_input(
-        f"Numero de secciones",
-        1,6,1,
-        key=f"sec{i}"
-    )
+    if st.button("Continuar"):
+        st.session_state.n_cursos = n
+        st.rerun()
 
-    lista_secciones = []
+# -----------------------------
+# RESTO DEL PROGRAMA
+# -----------------------------
 
-    for s in range(secciones):
+else:
 
-        letra = letras[s]
-        st.write(f"Seccion {letra}")
+    n = st.session_state.n_cursos
 
-        teorias = []
+    st.subheader("Configuracion de cruces")
 
-        for t in range(dias_teoria):
+    MAX_TT = st.number_input("Horas cruce teoria-teoria (max 4)",0,4,0)
+    MAX_TP = st.number_input("Horas cruce teoria-practica (max 2)",0,2,0)
+
+    cursos = []
+
+    for i in range(n):
+
+        st.subheader(f"Curso {i+1}")
+
+        nombre = st.text_input(f"Nombre curso {i+1}")
+
+        dias_teoria = st.number_input(
+            f"Dias teoria curso {i+1}",
+            1,5,1,
+            key=f"dt{i}"
+        )
+
+        secciones = st.number_input(
+            f"Numero de secciones curso {i+1}",
+            1,6,1,
+            key=f"sec{i}"
+        )
+
+        lista_secciones = []
+
+        for s in range(secciones):
+
+            letra = letras[s]
+            st.write(f"Seccion {letra}")
+
+            teorias = []
+
+            for t in range(dias_teoria):
+
+                d = st.selectbox(
+                    f"Dia teoria {t+1}",
+                    dias,
+                    key=f"d{i}{s}{t}"
+                )
+
+                i_h = st.number_input(
+                    f"Hora inicio teoria {t+1}",
+                    8,19,
+                    key=f"hi{i}{s}{t}"
+                )
+
+                f_h = st.number_input(
+                    f"Hora fin teoria {t+1}",
+                    9,20,
+                    key=f"hf{i}{s}{t}"
+                )
+
+                teorias.append((d,i_h,f_h))
 
             d = st.selectbox(
-                f"Dia teoria {t+1}",
+                "Dia practica",
                 dias,
-                key=f"d{i}{s}{t}"
+                key=f"dp{i}{s}"
             )
 
             i_h = st.number_input(
-                f"Hora inicio teoria {t+1}",
+                "Hora inicio practica",
                 8,19,
-                key=f"hi{i}{s}{t}"
+                key=f"hip{i}{s}"
             )
 
             f_h = st.number_input(
-                f"Hora fin teoria {t+1}",
+                "Hora fin practica",
                 9,20,
-                key=f"hf{i}{s}{t}"
+                key=f"hfp{i}{s}"
             )
 
-            teorias.append((d,i_h,f_h))
+            practica = (d,i_h,f_h)
 
-        st.write("Practica")
+            lista_secciones.append({
+                "curso":nombre,
+                "sec":letra,
+                "teorias":teorias,
+                "practica":practica
+            })
 
-        d = st.selectbox(
-            f"Dia practica",
-            dias,
-            key=f"dp{i}{s}"
-        )
+        cursos.append(lista_secciones)
 
-        i_h = st.number_input(
-            f"Hora inicio practica",
-            8,19,
-            key=f"hip{i}{s}"
-        )
+    # -----------------------------
+    # VALIDAR
+    # -----------------------------
 
-        f_h = st.number_input(
-            f"Hora fin practica",
-            9,20,
-            key=f"hfp{i}{s}"
-        )
+    def validar(comb):
 
-        practica = (d,i_h,f_h)
+        horario = {h:{d:[] for d in dias} for h in horas}
 
-        lista_secciones.append({
-            "curso":nombre,
-            "sec":letra,
-            "teorias":teorias,
-            "practica":practica
-        })
+        TT = 0
+        TP = 0
 
-    cursos.append(lista_secciones)
+        for sec in comb:
 
-# -----------------------------
-# VALIDAR HORARIO
-# -----------------------------
+            for (d,i,f) in sec["teorias"]:
+                for h in range(i,f):
+                    horario[h][d].append(("T",sec["curso"],sec["sec"]))
 
-def validar(comb):
+            (d,i,f) = sec["practica"]
 
-    horario = {h:{d:[] for d in dias} for h in horas}
-
-    TT = 0
-    TP = 0
-
-    for sec in comb:
-
-        for (d,i,f) in sec["teorias"]:
             for h in range(i,f):
-                horario[h][d].append(("T",sec["curso"],sec["sec"]))
+                horario[h][d].append(("P",sec["curso"],sec["sec"]))
 
-        (d,i,f) = sec["practica"]
+        for h in horas:
+            for d in dias:
 
-        for h in range(i,f):
-            horario[h][d].append(("P",sec["curso"],sec["sec"]))
+                celda = horario[h][d]
 
-    for h in horas:
-        for d in dias:
+                if len(celda) <= 1:
+                    continue
 
-            celda = horario[h][d]
+                tipos = [x[0] for x in celda]
 
-            if len(celda) <= 1:
+                if tipos.count("P") > 1:
+                    return None
+
+                if tipos.count("T") > 1:
+                    TT += 1
+
+                if "T" in tipos and "P" in tipos:
+                    TP += 1
+
+                if TT > MAX_TT or TP > MAX_TP:
+                    return None
+
+        return horario
+
+    # -----------------------------
+    # GENERAR
+    # -----------------------------
+
+    if st.button("Generar horarios"):
+
+        horarios_validos = []
+        contador = 0
+
+        for comb in itertools.product(*cursos):
+
+            h = validar(comb)
+
+            if not h:
                 continue
 
-            tipos = [x[0] for x in celda]
+            contador += 1
+            horarios_validos.append(h)
 
-            if tipos.count("P") > 1:
-                return None
+            tabla = []
 
-            if tipos.count("T") > 1:
-                TT += 1
+            for hr in horas:
 
-            if "T" in tipos and "P" in tipos:
-                TP += 1
+                fila = []
 
-            if TT > MAX_TT or TP > MAX_TP:
-                return None
+                for d in dias:
 
-    return horario
+                    celda = h[hr][d]
 
-# -----------------------------
-# GENERAR HORARIOS
-# -----------------------------
+                    if celda:
+                        texto = " / ".join([f"{c}-{s}-{t}" for t,c,s in celda])
+                    else:
+                        texto = ""
 
-if st.button("Generar horarios"):
+                    fila.append(texto)
 
-    horarios_validos = []
-    contador = 0
+                tabla.append(fila)
 
-    for comb in itertools.product(*cursos):
+            df = pd.DataFrame(tabla,columns=dias)
+            df.index = [f"{h}:00-{h+1}:00" for h in horas]
 
-        h = validar(comb)
+            st.subheader(f"Horario {contador}")
+            st.dataframe(df)
 
-        if not h:
-            continue
-
-        contador += 1
-        horarios_validos.append(h)
-
-        tabla = []
-
-        for hr in horas:
-
-            fila = []
-
-            for d in dias:
-
-                celda = h[hr][d]
-
-                if celda:
-                    texto = " / ".join([f"{c}-{s}-{t}" for t,c,s in celda])
-                else:
-                    texto = ""
-
-                fila.append(texto)
-
-            tabla.append(fila)
-
-        df = pd.DataFrame(tabla,columns=dias)
-        df.index = [f"{h}:00-{h+1}:00" for h in horas]
-
-        st.subheader(f"Horario {contador}")
-        st.dataframe(df)
-
-    st.success(f"Total horarios validos: {contador}")
-
-    # -----------------------------
-    # EXPORTAR EXCEL
-    # -----------------------------
-
-    output = BytesIO()
-    writer = pd.ExcelWriter(output, engine="openpyxl")
-
-    for i,horario in enumerate(horarios_validos):
-
-        tabla = []
-
-        for hr in horas:
-
-            fila = []
-
-            for d in dias:
-
-                celda = horario[hr][d]
-
-                if celda:
-                    texto = " / ".join([f"{c}-{s}-{t}" for t,c,s in celda])
-                else:
-                    texto = ""
-
-                fila.append(texto)
-
-            tabla.append(fila)
-
-        df = pd.DataFrame(tabla,columns=dias)
-        df.index = [f"{h}:00-{h+1}:00" for h in horas]
-
-        df.to_excel(writer,sheet_name=f"Horario_{i+1}")
-
-    writer.close()
-
-    st.download_button(
-        label="Descargar Excel",
-        data=output.getvalue(),
-        file_name="horarios_generados.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+        st.success(f"Total horarios validos: {contador}")
