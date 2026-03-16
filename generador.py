@@ -1,7 +1,14 @@
 import streamlit as st
-import os
+import subprocess
 
 st.title("Generador de Horarios")
 
 if st.button("Run Model"):
-    os.system("python tu_archivo.py")
+
+    resultado = subprocess.run(
+        ["python", "tu_archivo.py"],
+        capture_output=True,
+        text=True
+    )
+
+    st.text(resultado.stdout)
