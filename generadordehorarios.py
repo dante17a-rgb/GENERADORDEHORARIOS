@@ -1,10 +1,11 @@
 import pandas as pd
 import itertools
-from io import BytesIO
 
-dias = ["lu","ma","mi","ju","vi","sa"]
-horas = list(range(8,20))
-letras = ["A","B","C","D","E","F"]
+def main():
+
+    dias = ["lu","ma","mi","ju","vi","sa"]
+    horas = list(range(8,20))
+    letras = ["A","B","C","D","E","F"]
 
 st.title("Generador de Horarios Universitarios")
 
@@ -238,3 +239,5 @@ if st.button("Run Model"):
         file_name="horarios_generados.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+if __name__ == "__main__":
+    main()
